@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>计算器</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a2e;
+    color: #eee;
+  }
+  .calc {
+    background: #16213e;
+    border-radius: 24px;
+    padding: 24px;
+    width: 340px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .display {
+    background: #0f3460;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    text-align: right;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+  }
+  .display .expr {
+    font-size: 16px;
+    color: #8899bb;
+    min-height: 24px;
+    word-break: break-all;
+    direction: rtl;
+    text-align: left;
+    overflow-wrap: break-word;
+  }
+  .display .result {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums;
+    transition: font-size .15s;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .display .result.small { font-size: 28px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .grid button {
+    padding: 18px 0;
+    border: none;
+    border-radius: 14px;
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .12s;
+    background: #0f3460;
+    color: #d0e0ff;
+  }
+  .grid button:active { transform: scale(.93); }
+  .grid button.op {
+    background: #1a4a7a;
+    color: #80b0f0;
+    font-size: 24px;
+  }
+  .grid button.op.active {
+    background: #e94560;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(233,69,96,.35);
+  }
+  .grid button.eq {
+    background: #e94560;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(233,69,96,.3);
+  }
+  .grid button.eq:hover { background: #ff5a75; }
+  .grid button.fn {
+    background: #0a2540;
+    color: #667799;
+    font-size: 18px;
+  }
+  .grid button.fn:hover { color: #a0b0d0; }
+  .grid button.span2 { grid-column: span 2; }
+  .error-msg {
+    color: #e94560;
+    font-size: 14px;
+    text-align: right;
+    min-height: 20px;
+    line-height: 20px;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="calc">
+  <div class="display">
+    <div class="expr" id="expr"></div>
+    <div class="result" id="result">0</div>
+  </div>
+  <div class="error-msg" id="err"></div>
+  <div class="grid">
+    <button class="fn" data-action="clear">AC</button>
+    <button class="fn" data-action="sign">±</button>
+    <button class="fn" data-action="percent">%</button>
+    <button class="op" data-action="divide">÷</button>
+
+    <button data-action="digit" data-value="7">7</button>
+    <button data-action="digit" data-value="8">8</button>
+    <button data-action="digit" data-value="9">9</button>
+    <button class="op" data-action="multiply">×</button>
+
+    <button data-action="digit" data-value="4">4</button>
+    <button data-action="digit" data-value="5">5</button>
+    <button data-action="digit" data-value="6">6</button>
+    <button class="op" data-action="subtract">−</button>
+
+    <button data-action="digit" data-value="1">1</button>
+    <button data-action="digit" data-value="2">2</button>
+    <button data-action="digit" data-value="3">3</button>
+    <button class="op" data-action="add">+</button>
+
+    <button data-action="digit" data-value="0" class="span2">0</button>
+    <button data-action="decimal">.</button>
+    <button class="eq" data-action="equals">=</button>
+  </div>
+</div>
+<script>
+const state = { current: '0', prev: '', op: null, reset: false, justEvaluated: false };
+const resultEl = document.getElementById('result');
+const exprEl = document.getElementById('expr');
+const errEl = document.getElementById('err');
+
+function update() {
+  resultEl.textContent = state.current;
+  resultEl.classList.toggle('small', state.current.length > 10);
+}
+function setError(msg) { errEl.textContent = msg; }
+function clearError() { errEl.textContent = ''; }
+function format(n) {
+  const s = String(n);
+  if (s.length > 16) return n.toExponential(6);
+  return s;
+}
+
+function inputDigit(d) {
+  clearError();
+  if (state.justEvaluated && !state.op) { state.current = '0'; state.justEvaluated = false; }
+  if (state.reset) { state.current = '0'; state.reset = false; }
+  if (state.current === '0' && d !== '.') state.current = d;
+  else if (state.current.length < 16) state.current += d;
+  update();
+}
+
+function inputDecimal() {
+  clearError();
+  if (state.reset) { state.current = '0'; state.reset = false; }
+  if (state.justEvaluated && !state.op) { state.current = '0'; state.justEvaluated = false; }
+  if (!state.current.includes('.')) state.current += '.';
+  update();
+}
+
+function setOp(op) {
+  clearError();
+  state.justEvaluated = false;
+  if (state.op && !state.reset) evaluate();
+  state.prev = state.current;
+  state.op = op;
+  state.reset = true;
+  document.querySelectorAll('.op').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-action="${op}"]`)?.classList.add('active');
+}
+
+function evaluate() {
+  const a = parseFloat(state.prev);
+  const b = parseFloat(state.current);
+  let r;
+  switch (state.op) {
+    case 'add': r = a + b; break;
+    case 'subtract': r = a - b; break;
+    case 'multiply': r = a * b; break;
+    case 'divide':
+      if (b === 0) { setError('不能除以零'); state.current = '0'; state.prev = ''; state.op = null; state.reset = true; document.querySelectorAll('.op').forEach(b => b.classList.remove('active')); update(); return; }
+      r = a / b; break;
+    default: return;
+  }
+  if (!isFinite(r) || isNaN(r)) { setError('结果无效'); r = 0; }
+  r = parseFloat(r.toPrecision(12));
+  state.current = format(r);
+  state.prev = '';
+  state.op = null;
+  state.reset = true;
+  state.justEvaluated = true;
+  document.querySelectorAll('.op').forEach(b => b.classList.remove('active'));
+  update();
+}
+
+function clearAll() {
+  state.current = '0'; state.prev = ''; state.op = null; state.reset = false; state.justEvaluated = false;
+  clearError();
+  document.querySelectorAll('.op').forEach(b => b.classList.remove('active'));
+  exprEl.textContent = '';
+  update();
+}
+
+function toggleSign() {
+  clearError();
+  if (state.current !== '0') state.current = state.current.startsWith('-') ? state.current.slice(1) : '-' + state.current;
+  update();
+}
+
+function percent() {
+  clearError();
+  const v = parseFloat(state.current);
+  state.current = format(v / 100);
+  update();
+}
+
+document.querySelector('.grid').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  if (action === 'digit') inputDigit(btn.dataset.value);
+  else if (action === 'decimal') inputDecimal();
+  else if (action === 'clear') clearAll();
+  else if (action === 'sign') toggleSign();
+  else if (action === 'percent') percent();
+  else if (action === 'equals') { if (state.op) evaluate(); }
+  else if (action) setOp(action);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key >= '0' && e.key <= '9') { inputDigit(e.key); e.preventDefault(); }
+  else if (e.key === '.') { inputDecimal(); e.preventDefault(); }
+  else if (e.key === 'Enter' || e.key === '=') { if (state.op) evaluate(); e.preventDefault(); }
+  else if (e.key === 'Escape' || e.key === 'c') { clearAll(); e.preventDefault(); }
+  else if (e.key === 'Backspace') {
+    clearError();
+    if (state.current.length > 1) state.current = state.current.slice(0, -1);
+    else state.current = '0';
+    update(); e.preventDefault();
+  }
+  else if (e.key === '+') setOp('add');
+  else if (e.key === '-') setOp('subtract');
+  else if (e.key === '*') setOp('multiply');
+  else if (e.key === '/') { setOp('divide'); e.preventDefault(); }
+  else if (e.key === '%') { percent(); e.preventDefault(); }
+});
+</script>
+</body>
+</html>
