@@ -1,0 +1,18 @@
+appId: com.snake.game
+productName: 贪吃蛇
+directories:
+  output: dist
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: 贪吃蛇安装包.exe
+files:
+  - main.js
+  - renderer/**/*
+  - node_modules/**/*
+  - package.json

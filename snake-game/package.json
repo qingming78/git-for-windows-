@@ -1,0 +1,14 @@
+{
+  "name": "snake-game",
+  "version": "1.0.0",
+  "description": "Ã∞≥‘…ﬂ◊¿√Ê”Œœ∑",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --config electron-builder.yml"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}
