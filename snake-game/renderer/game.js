@@ -129,15 +129,15 @@ function endGame() {
   gameOver = true;
   clearInterval(interval);
   document.getElementById('overlay').classList.add('show');
-  document.querySelector('#overlay h2').textContent = '馃拃 娓告垙缁撴潫';
+  document.querySelector('#overlay h2').textContent = 'Game Over';
   document.querySelector('.final-score')?.remove();
   const fs = document.createElement('div');
   fs.className = 'final-score';
   fs.textContent = score;
   document.querySelector('#overlay h2').insertAdjacentElement('afterend', fs);
   const p = document.querySelector('#overlay p');
-  p.textContent = score >= highScore && score > 0 ? '馃弳 鏂扮邯褰曪紒' : '鍐嶈瘯涓€娆★紵';
-  startBtn.textContent = '閲嶆柊寮€濮?;
+  p.textContent = score >= highScore && score > 0 ? 'New Record!' : 'Try Again?';
+  startBtn.textContent = 'Restart';
 }
 
 function startGame() {
